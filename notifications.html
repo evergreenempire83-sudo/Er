@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EverDistro | Inbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f1f5f9; -webkit-font-smoothing: antialiased; }
+        .sidebar-link { transition: all 0.2s; color: #94a3b8; }
+        .sidebar-link:hover, .sidebar-link.active { color: #fff; background: #0f172a; }
+        .cms-card { background: #0a0f1e; border: 1px solid #1e293b; border-radius: 12px; }
+        .msg-item { border-bottom: 1px solid #1e293b; transition: 0.2s; cursor: pointer; }
+        .msg-item:hover { background: rgba(255,255,255,0.02); }
+        .msg-item.unread { background: rgba(59, 130, 246, 0.03); border-left: 3px solid #3b82f6; }
+        .unread-dot { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex w-64 flex-col bg-[#020617] border-r border-white/5 h-screen sticky top-0 p-6">
+        <div class="flex items-center gap-2 mb-10 px-2">
+            <img src="https://vinxbbpboupirnyxwghz.supabase.co/storage/v1/object/public/Ever-Music/file_00000000535c71f4a154bd2a598fddd0.png" class="h-6 w-auto">
+            <span class="font-bold text-lg">Studio Pro</span>
+        </div>
+        <nav class="space-y-1 flex-1">
+            <a href="dashboard.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="home" class="w-4 h-4"></i> Overview
+            </a>
+            <a href="upload.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload
+            </a>
+            <a href="releases.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="disc" class="w-4 h-4"></i> Assets
+            </a>
+            <a href="notifications.html" class="sidebar-link active flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="bell" class="w-4 h-4"></i> Inbox
+            </a>
+            <a href="earnings.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="wallet" class="w-4 h-4"></i> Bank
+            </a>
+        </nav>
+        <button onclick="logout()" class="flex items-center gap-2 text-[11px] font-bold text-slate-500 uppercase hover:text-white pt-6 border-t border-white/5">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+        </button>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full overflow-y-auto">
+        
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+            <div>
+                <h1 class="text-2xl font-bold">Inbox</h1>
+                <p class="text-sm text-slate-500 mt-1">Updates on your music and account.</p>
+            </div>
+            <button onclick="markAllRead()" id="btn-mark" class="bg-[#1e293b] border border-[#334155] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#252f3f]">Mark All Read</button>
+        </div>
+
+        <div class="cms-card overflow-hidden min-h-[400px]">
+            <div class="p-4 border-b border-white/5 bg-[#0f172a] flex justify-between items-center">
+                <h3 id="inbox-status" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Syncing Messages...</h3>
+            </div>
+
+            <!-- Loader (The thing that was getting stuck) -->
+            <div id="loader" class="py-20 flex flex-col items-center justify-center gap-4">
+                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-[10px] font-bold uppercase text-slate-600">Connecting to CMS</p>
+            </div>
+
+            <!-- Messages List -->
+            <div id="msg-list" class="hidden"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden py-32 text-center space-y-3">
+                <i data-lucide="mail-open" class="w-8 h-8 text-slate-700 mx-auto"></i>
+                <p class="text-xs font-bold text-slate-500 uppercase">Your inbox is clear</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // BACKEND CONFIG
+        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdHBwanNzeHZxanJ0dXlyYm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNzQyNjgsImV4cCI6MjA4NTg1MDI2OH0.O-2UWsBZrw8tyTCXhCcDNAhgY5Ro9_kZRlQoOSUGU3o';
+        
+        // Use a safe initialization pattern
+        const { createClient } = window.supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const user = JSON.parse(localStorage.getItem('everdistro_user'));
+
+        async function init() {
+            if (!user) return window.location.href = 'index.html';
+            lucide.createIcons();
+            await loadInbox();
+        }
+
+        async function loadInbox() {
+            const listEl = document.getElementById('msg-list');
+            const loaderEl = document.getElementById('loader');
+            const statusEl = document.getElementById('inbox-status');
+            const emptyEl = document.getElementById('empty-state');
+
+            try {
+                // Fetch from your 'notifications' table
+                const { data, error } = await _supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    listEl.classList.add('hidden');
+                    emptyEl.classList.remove('hidden');
+                    statusEl.innerText = "No New Messages";
+                } else {
+                    emptyEl.classList.add('hidden');
+                    listEl.classList.remove('hidden');
+                    
+                    const unreadCount = data.filter(n => !n.read).length;
+                    statusEl.innerText = unreadCount > 0 ? `${unreadCount} New Messages` : "Inbox Clear";
+
+                    listEl.innerHTML = data.map(n => `
+                        <div class="msg-item p-6 flex gap-5 ${!n.read ? 'unread' : ''}" onclick="markAsRead('${n.id}')">
+                            <div class="w-10 h-10 rounded-lg bg-[#050814] border border-white/5 flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="${getIcon(n.type)}" class="w-4 h-4 text-blue-500"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h4 class="text-sm font-bold text-white">${n.title}</h4>
+                                    ${!n.read ? '<span class="unread-dot"></span>' : ''}
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed max-w-2xl">${n.message}</p>
+                                <div class="flex items-center gap-3 mt-3">
+                                    <p class="text-[10px] font-bold text-slate-600 uppercase">${new Date(n.created_at).toLocaleDateString()}</p>
+                                    <button onclick="event.stopPropagation(); deleteMsg('${n.id}')" class="text-[10px] font-bold text-slate-700 hover:text-rose-500 uppercase">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error("Inbox Sync Error:", err);
+                statusEl.innerText = "Offline Mode";
+                emptyEl.classList.remove('hidden');
+            } finally {
+                // THIS FIXES THE FOREVER LOADING
+                loaderEl.classList.add('hidden');
+                lucide.createIcons();
+            }
+        }
+
+        async function markAsRead(id) {
+            await _supabase.from('notifications').update({ read: true }).eq('id', id);
+            loadInbox();
+        }
+
+        async function markAllRead() {
+            document.getElementById('btn-mark').innerText = "Working...";
+            await _supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
+            document.getElementById('btn-mark').innerText = "Mark All Read";
+            loadInbox();
+        }
+
+        async function deleteMsg(id) {
+            if (!confirm("Delete message?")) return;
+            await _supabase.from('notifications').delete().eq('id', id);
+            loadInbox();
+        }
+
+        function getIcon(type) {
+            switch (type) {
+                case 'release': return 'disc';
+                case 'payout': return 'wallet';
+                case 'security': return 'shield-check';
+                default: return 'info';
+            }
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+        init();
+    </script>
+</body>
+</html>

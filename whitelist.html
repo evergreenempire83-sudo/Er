@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EverDistro | Asset Management (CMS)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f1f5f9; -webkit-font-smoothing: antialiased; }
+        .sidebar-link { transition: all 0.2s; color: #94a3b8; }
+        .sidebar-link:hover, .sidebar-link.active { color: #fff; background: #0f172a; }
+        
+        /* CMS Table Style */
+        .cms-card { background: #0a0f1e; border: 1px solid #1e293b; border-radius: 12px; }
+        .cms-table th { background: #0f172a; border-bottom: 1px solid #1e293b; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cms-table td { border-bottom: 1px solid #1e293b; font-size: 13px; }
+        
+        /* Studio Toggle */
+        .toggle-btn { width: 36px; height: 18px; background: #1e293b; border-radius: 20px; position: relative; cursor: pointer; transition: 0.3s; }
+        .toggle-dot { width: 12px; height: 12px; background: #64748b; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: 0.3s; }
+        .active .toggle-btn { background: #3b82f6; }
+        .active .toggle-dot { transform: translateX(18px); background: #fff; }
+
+        .btn-action { background: #1e293b; color: #fff; border: 1px solid #334155; transition: 0.2s; }
+        .btn-action:hover { background: #334155; border-color: #475569; }
+
+        .policy-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+        .status-monetize { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .status-review { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- CMS Sidebar -->
+    <aside class="hidden lg:flex w-64 flex-col bg-[#020617] border-r border-white/5 h-screen sticky top-0 p-6">
+        <div class="flex items-center gap-2 mb-10 px-2">
+            <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-lg">E</div>
+            <span class="font-bold tracking-tight text-lg">Studio Pro</span>
+        </div>
+        
+        <nav class="space-y-1 flex-1">
+            <p class="text-[10px] font-bold text-slate-500 uppercase px-3 mb-2 tracking-widest">Management</p>
+            <a href="dashboard.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="home" class="w-4 h-4"></i> Overview
+            </a>
+            <a href="releases.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="music-2" class="w-4 h-4"></i> Assets
+            </a>
+            <a href="whitelist.html" class="sidebar-link active flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Rights & Policy
+            </a>
+            <a href="earnings.html" class="sidebar-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Financials
+            </a>
+        </nav>
+
+        <div class="pt-6 border-t border-white/5">
+            <button onclick="logout()" class="flex items-center gap-2 text-[11px] font-bold text-slate-500 uppercase hover:text-white">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 p-6 lg:p-8 max-w-6xl mx-auto w-full">
+        
+        <!-- Studio Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <div>
+                <h1 class="text-xl font-bold">Rights Management</h1>
+                <p class="text-xs text-slate-500 mt-1">Manage Content ID assets and Channel Allow-lists.</p>
+            </div>
+            
+            <div class="flex items-center bg-[#0f172a] p-1 rounded-lg border border-white/5 shadow-sm">
+                <button onclick="switchTab('protection')" id="tab-p" class="px-5 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white">Assets</button>
+                <button onclick="switchTab('whitelist')" id="tab-w" class="px-5 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white">Allow-list</button>
+            </div>
+        </div>
+
+        <!-- Section 1: Asset Table (CMS Style) -->
+        <div id="section-protection" class="space-y-4">
+            <div class="flex gap-4 mb-4">
+                <div class="cms-card px-4 py-3 flex-1 flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Total Asset Claims</span>
+                    <span id="stat-count" class="text-lg font-bold text-blue-500">0</span>
+                </div>
+                <div class="cms-card px-4 py-3 flex-1 flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase">Global Policy</span>
+                    <span class="text-xs font-bold text-emerald-500 uppercase">Monetize</span>
+                </div>
+            </div>
+
+            <div class="cms-card overflow-hidden">
+                <table class="w-full text-left cms-table">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3">Asset & Release</th>
+                            <th class="px-6 py-3">ISRC Code</th>
+                            <th class="px-6 py-3">Claim Policy</th>
+                            <th class="px-6 py-3 text-right">Protection</th>
+                        </tr>
+                    </thead>
+                    <tbody id="protectionTable" class="divide-y divide-white/5">
+                        <!-- Assets row -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Allow-list (YouTube Style) -->
+        <div id="section-whitelist" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-sm font-bold text-slate-400">Authorized Channels</h3>
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-xs font-bold">+ Add Channel</button>
+            </div>
+
+            <div class="cms-card overflow-hidden">
+                <table class="w-full text-left cms-table">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3">Channel Link</th>
+                            <th class="px-6 py-3">Status</th>
+                            <th class="px-6 py-3 text-right">Submission Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="whitelistTable">
+                        <!-- Entries -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- CMS Modal -->
+    <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 hidden">
+        <div class="cms-card w-full max-w-md p-6 bg-[#0a0f1e]">
+            <h3 class="text-lg font-bold mb-4">Allow-list New Channel</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">YouTube URL</label>
+                    <input type="text" id="channelUrl" class="w-full bg-[#020617] border border-white/10 p-2.5 rounded text-sm outline-none focus:border-blue-500" placeholder="https://youtube.com/c/name">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1">Authorization Note</label>
+                    <input type="text" id="reason" class="w-full bg-[#020617] border border-white/10 p-2.5 rounded text-sm outline-none focus:border-blue-500" placeholder="e.g. Official VEVO Channel">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModal()" class="flex-1 btn-action py-2 rounded text-xs font-bold">Cancel</button>
+                    <button onclick="submitWhitelist()" id="subBtn" class="flex-1 bg-blue-600 py-2 rounded text-xs font-bold">Submit Asset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdHBwanNzeHZxanJ0dXlyYm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNzQyNjgsImV4cCI6MjA4NTg1MDI2OH0.O-2UWsBZrw8tyTCXhCcDNAhgY5Ro9_kZRlQoOSUGU3o';
+        const currentUser = JSON.parse(localStorage.getItem('everdistro_user'));
+
+        async function loadData() {
+            if (!currentUser) return;
+            
+            try {
+                const [trackRes, whiteRes] = await Promise.all([
+                    fetch(`${SUPABASE_URL}/rest/v1/tracks?user_id=eq.${currentUser.id}&select=*,releases(title)`, {
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    }),
+                    fetch(`${SUPABASE_URL}/rest/v1/whitelist_requests?user_id=eq.${currentUser.id}`, {
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    })
+                ]);
+
+                renderAssets(await trackRes.json());
+                renderWhitelist(await whiteRes.json());
+            } catch (err) { console.error(err); }
+        }
+
+        function renderAssets(tracks) {
+            const tbody = document.getElementById('protectionTable');
+            document.getElementById('stat-count').innerText = tracks.filter(t => t.content_id_enabled).length;
+            
+            tbody.innerHTML = tracks.map(t => `
+                <tr class="${t.content_id_enabled ? 'active' : ''}">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white">${t.title}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">${t.releases?.title || 'Unknown Release'}</div>
+                    </td>
+                    <td class="px-6 py-4 font-mono text-xs text-slate-400">
+                        ${t.isrc || '-- -- --'}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="policy-badge ${t.content_id_enabled ? 'status-monetize' : 'status-review'}">
+                            <i data-lucide="${t.content_id_enabled ? 'dollar-sign' : 'slash'}" class="w-3 h-3"></i>
+                            ${t.content_id_enabled ? 'Monetize' : 'Blocked'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex justify-end">
+                            <div onclick="toggleProtection('${t.id}', ${t.content_id_enabled})" class="toggle-btn"><div class="toggle-dot"></div></div>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderWhitelist(list) {
+            const tbody = document.getElementById('whitelistTable');
+            if(list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-xs">No entries found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(e => `
+                <tr class="divide-x divide-white/5">
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-blue-400">${e.channel_url}</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5 uppercase">${e.reason || 'No note'}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="policy-badge ${e.status === 'approved' ? 'status-monetize' : 'status-review'}">${e.status}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right text-[11px] text-slate-500">
+                        ${new Date(e.created_at).toLocaleDateString()}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function toggleProtection(id, state) {
+            await fetch(`${SUPABASE_URL}/rest/v1/tracks?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content_id_enabled: !state })
+            });
+            loadData();
+        }
+
+        async function submitWhitelist() {
+            const url = document.getElementById('channelUrl').value;
+            if(!url) return;
+            document.getElementById('subBtn').innerText = 'Syncing...';
+            await fetch(`${SUPABASE_URL}/rest/v1/whitelist_requests`, {
+                method: 'POST',
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: currentUser.id, channel_url: url, reason: document.getElementById('reason').value, status: 'pending' })
+            });
+            closeModal(); loadData();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('section-protection').classList.toggle('hidden', tab !== 'protection');
+            document.getElementById('section-whitelist').classList.toggle('hidden', tab !== 'whitelist');
+            document.getElementById('tab-p').className = tab === 'protection' ? 'px-5 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white' : 'px-5 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
+            document.getElementById('tab-w').className = tab === 'whitelist' ? 'px-5 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white' : 'px-5 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
+        }
+
+        function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function logout() { localStorage.removeItem('everdistro_user'); window.location.href = 'index.html'; }
+
+        loadData();
+    </script>
+</body>
+</html>

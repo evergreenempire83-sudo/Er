@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EverDistro | Bank</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f1f5f9; -webkit-font-smoothing: antialiased; }
+        .nav-link { transition: all 0.2s; color: #94a3b8; }
+        .nav-link:hover, .nav-link.active { color: #fff; background: #0f172a; }
+        .cms-card { background: #0a0f1e; border: 1px solid #1e293b; border-radius: 12px; }
+        .input-field { background: #050814; border: 1px solid #1e293b; border-radius: 8px; width: 100%; padding: 12px; color: white; outline: none; font-size: 14px; }
+        .input-field:focus { border-color: #3b82f6; }
+        .btn-blue { background: #3b82f6; color: white; font-weight: 600; padding: 10px 20px; border-radius: 8px; transition: 0.2s; }
+        .btn-blue:hover { background: #2563eb; }
+        .method-btn { border: 2px solid #1e293b; background: #050814; padding: 16px; border-radius: 12px; cursor: pointer; text-align: center; width: 100%; transition: 0.2s; }
+        .method-btn.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex w-64 flex-col bg-[#020617] border-r border-white/5 h-screen sticky top-0 p-6">
+        <div class="flex items-center gap-2 mb-10 px-2">
+            <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">E</div>
+            <span class="font-bold text-lg tracking-tight">Studio Pro</span>
+        </div>
+        <nav class="space-y-1 flex-1">
+            <a href="dashboard.html" class="nav-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i> Overview
+            </a>
+            <a href="upload.html" class="nav-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload
+            </a>
+            <a href="releases.html" class="nav-link flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="disc" class="w-4 h-4"></i> Assets
+            </a>
+            <a href="earnings.html" class="nav-link active flex items-center gap-3 p-2.5 rounded-lg text-sm">
+                <i data-lucide="wallet" class="w-4 h-4"></i> Bank
+            </a>
+        </nav>
+        <button onclick="logout()" class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase hover:text-white pt-6 border-t border-white/5 transition-colors">
+            <i data-lucide="log-out" class="w-3 h-3"></i> Log Out
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+            <div>
+                <h1 class="text-2xl font-bold">Bank</h1>
+                <p class="text-sm text-slate-500 mt-1">Simple view of your money.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openModal('settingsModal')" class="bg-[#1e293b] text-white px-5 py-2 rounded-lg text-xs font-bold border border-[#334155] hover:bg-[#252f3f]">Pay Method</button>
+                <button onclick="openModal('withdrawModal')" class="btn-blue text-xs">Withdraw</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="cms-card p-6">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">In Wallet</p>
+                <h3 id="bal-wallet" class="text-2xl font-bold mt-1">$0.00</h3>
+            </div>
+            <div class="cms-card p-6">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pending</p>
+                <h3 id="bal-pending" class="text-2xl font-bold mt-1 text-amber-500">$0.00</h3>
+            </div>
+            <div class="cms-card p-6">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Already Paid</p>
+                <h3 id="bal-paid" class="text-2xl font-bold mt-1 text-emerald-500">$0.00</h3>
+            </div>
+            <div class="cms-card p-6">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Lifetime</p>
+                <h3 id="bal-total" class="text-2xl font-bold mt-1 text-blue-500">$0.00</h3>
+            </div>
+        </div>
+
+        <!-- History Tabs -->
+        <div class="cms-card overflow-hidden">
+            <div class="flex border-b border-white/5 bg-[#0f172a]">
+                <button onclick="switchTab('rev')" id="tab-rev-btn" class="px-8 py-4 text-[11px] font-bold uppercase bg-blue-600 text-white">Earnings</button>
+                <button onclick="switchTab('history')" id="tab-history-btn" class="px-8 py-4 text-[11px] font-bold uppercase text-slate-500 hover:text-white">History</button>
+            </div>
+            
+            <div id="rev-section">
+                <table class="w-full text-left">
+                    <thead class="bg-[#0f172a] text-[10px] uppercase text-slate-500">
+                        <tr><th class="px-6 py-3">Source</th><th class="px-6 py-3">Details</th><th class="px-6 py-3 text-right">Amount</th></tr>
+                    </thead>
+                    <tbody id="rev-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+
+            <div id="history-section" class="hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-[#0f172a] text-[10px] uppercase text-slate-500">
+                        <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Method</th><th class="px-6 py-3">Status</th><th class="px-6 py-3 text-right">Amount</th></tr>
+                    </thead>
+                    <tbody id="history-body" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Withdraw -->
+    <div id="withdrawModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 hidden backdrop-blur-sm">
+        <div class="cms-card w-full max-w-md p-8 relative">
+            <button onclick="closeModal('withdrawModal')" class="absolute top-6 right-6 text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold mb-6">Withdraw Money</h3>
+            
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="setMethod('PayPal')" id="method-pp" class="method-btn active"><p class="text-xs font-bold uppercase">PayPal</p></div>
+                    <div onclick="setMethod('Bank')" id="method-bank" class="method-btn"><p class="text-xs font-bold uppercase">Bank</p></div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1">Amount (USD)</label>
+                    <input type="number" id="withdraw-amount" class="input-field text-2xl font-bold" placeholder="0.00">
+                </div>
+                <button onclick="handleWithdraw()" id="withdraw-btn-submit" class="btn-blue w-full py-4 uppercase text-xs tracking-widest">Confirm Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Payout Setup -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 hidden backdrop-blur-sm">
+        <div class="cms-card w-full max-w-xl p-8 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('settingsModal')" class="absolute top-6 right-6 text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <h3 class="text-xl font-bold mb-6">Payment Settings</h3>
+            
+            <div class="space-y-6">
+                <div class="flex bg-[#050814] p-1 rounded-lg border border-white/5">
+                    <button onclick="togglePayForm('pp')" id="setup-pp-btn" class="flex-1 py-2 rounded-md text-[10px] font-bold uppercase bg-blue-600 text-white">PayPal</button>
+                    <button onclick="togglePayForm('bank')" id="setup-bank-btn" class="flex-1 py-2 rounded-md text-[10px] font-bold uppercase text-slate-500">Bank Transfer</button>
+                </div>
+
+                <div id="form-pp" class="space-y-4">
+                    <input type="email" id="set-pp-email" class="input-field" placeholder="PayPal Email">
+                </div>
+
+                <div id="form-bank" class="hidden space-y-4">
+                    <select id="set-country" class="input-field">
+                        <option value="United States">United States</option>
+                        <option value="Nigeria">Nigeria</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="Europe">Europe</option>
+                        <option value="South Africa">South Africa</option>
+                        <option value="Ghana">Ghana</option>
+                    </select>
+                    <input type="text" id="set-bank-name" class="input-field" placeholder="Bank Name">
+                    <input type="text" id="set-holder" class="input-field" placeholder="Account Holder Name">
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="set-number" class="input-field" placeholder="Account Number / IBAN">
+                        <input type="text" id="set-swift" class="input-field" placeholder="SWIFT Code">
+                    </div>
+                </div>
+
+                <button onclick="saveSettings()" id="save-settings-btn" class="btn-blue w-full py-4 uppercase text-xs tracking-widest">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SUPABASE CONFIG
+        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdHBwanNzeHZxanJ0dXlyYm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNzQyNjgsImV4cCI6MjA4NTg1MDI2OH0.O-2UWsBZrw8tyTCXhCcDNAhgY5Ro9_kZRlQoOSUGU3o';
+        const { createClient } = window.supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const currentUser = JSON.parse(localStorage.getItem('everdistro_user'));
+        let walletBalance = 0;
+        let activeWithdrawMethod = 'PayPal';
+
+        // STARTUP
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!currentUser) { window.location.href = 'index.html'; return; }
+            lucide.createIcons();
+            loadAllData();
+        });
+
+        async function loadAllData() {
+            try {
+                // 1. Get Wallet
+                const { data: e } = await _supabase.from('user_earnings').select('*').eq('user_id', currentUser.id).single();
+                if (e) {
+                    walletBalance = e.available_balance;
+                    document.getElementById('bal-wallet').innerText = `$${e.available_balance.toFixed(2)}`;
+                    document.getElementById('bal-pending').innerText = `$${e.pending_payouts.toFixed(2)}`;
+                    document.getElementById('bal-paid').innerText = `$${e.total_paid.toFixed(2)}`;
+                    document.getElementById('bal-total').innerText = `$${e.total_earnings.toFixed(2)}`;
+                }
+
+                // 2. Get Revenue
+                const { data: t } = await _supabase.from('earnings_transactions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+                document.getElementById('rev-body').innerHTML = t?.length ? t.map(row => `
+                    <tr>
+                        <td class="px-6 py-4"><span class="text-[10px] font-bold text-slate-500 uppercase">${row.source}</span></td>
+                        <td class="px-6 py-4"><div class="font-bold">${row.description}</div></td>
+                        <td class="px-6 py-4 text-right font-bold text-emerald-500">+$${row.amount.toFixed(2)}</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="3" class="text-center py-10 text-slate-500">No data found.</td></tr>`;
+
+                // 3. Get History
+                const { data: h } = await _supabase.from('payout_requests').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+                document.getElementById('history-body').innerHTML = h?.length ? h.map(row => `
+                    <tr>
+                        <td class="px-6 py-4">${new Date(row.created_at).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 text-xs font-bold uppercase text-slate-500">${row.method}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 rounded bg-white/5 text-[10px] uppercase font-bold">${row.status}</span></td>
+                        <td class="px-6 py-4 text-right font-bold">$${row.amount.toFixed(2)}</td>
+                    </tr>
+                `).join('') : `<tr><td colspan="4" class="text-center py-10 text-slate-500">No history found.</td></tr>`;
+
+                // 4. Load Profile Settings
+                const { data: prof } = await _supabase.from('profiles').select('payout_settings').eq('id', currentUser.id).single();
+                if (prof?.payout_settings) {
+                    const s = prof.payout_settings;
+                    if(s.paypal) document.getElementById('set-pp-email').value = s.paypal;
+                    if(s.bank) {
+                        document.getElementById('set-country').value = s.bank.country || 'United States';
+                        document.getElementById('set-bank-name').value = s.bank.name || '';
+                        document.getElementById('set-holder').value = s.bank.holder || '';
+                        document.getElementById('set-number').value = s.bank.number || '';
+                        document.getElementById('set-swift').value = s.bank.swift || '';
+                    }
+                }
+            } catch (err) { console.log(err); }
+        }
+
+        // ACTIONS
+        function setMethod(m) {
+            activeWithdrawMethod = m;
+            document.getElementById('method-pp').classList.toggle('active', m === 'PayPal');
+            document.getElementById('method-bank').classList.toggle('active', m === 'Bank');
+        }
+
+        async function handleWithdraw() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            if (isNaN(amount) || amount < 50) return alert("Minimum withdrawal is $50.00");
+            if (amount > walletBalance) return alert("Insufficient funds in wallet.");
+
+            const btn = document.getElementById('withdraw-btn-submit');
+            btn.disabled = true; btn.innerText = "Processing...";
+
+            const { error } = await _supabase.from('payout_requests').insert([{ 
+                user_id: currentUser.id, 
+                amount: amount, 
+                status: 'pending', 
+                method: activeWithdrawMethod 
+            }]);
+
+            if(!error) {
+                alert("Withdrawal request sent!");
+                closeModal('withdrawModal');
+                loadAllData();
+            } else { alert("Failed to send request."); }
+            btn.disabled = false; btn.innerText = "Confirm Request";
+        }
+
+        async function saveSettings() {
+            const btn = document.getElementById('save-settings-btn');
+            btn.disabled = true; btn.innerText = "Saving...";
+
+            const payload = {
+                paypal: document.getElementById('set-pp-email').value,
+                bank: {
+                    country: document.getElementById('set-country').value,
+                    name: document.getElementById('set-bank-name').value,
+                    holder: document.getElementById('set-holder').value,
+                    number: document.getElementById('set-number').value,
+                    swift: document.getElementById('set-swift').value
+                }
+            };
+
+            const { error } = await _supabase.from('profiles').update({ payout_settings: payload }).eq('id', currentUser.id);
+            if(!error) { alert("Settings saved."); closeModal('settingsModal'); } else { alert("Error saving."); }
+            btn.disabled = false; btn.innerText = "Save Settings";
+        }
+
+        // UI HELPERS
+        function togglePayForm(t) {
+            document.getElementById('form-pp').classList.toggle('hidden', t !== 'pp');
+            document.getElementById('form-bank').classList.toggle('hidden', t !== 'bank');
+            document.getElementById('setup-pp-btn').className = t === 'pp' ? 'flex-1 py-2 rounded-md text-[10px] font-bold uppercase bg-blue-600 text-white' : 'flex-1 py-2 rounded-md text-[10px] font-bold uppercase text-slate-500';
+            document.getElementById('setup-bank-btn').className = t === 'bank' ? 'flex-1 py-2 rounded-md text-[10px] font-bold uppercase bg-blue-600 text-white' : 'flex-1 py-2 rounded-md text-[10px] font-bold uppercase text-slate-500';
+        }
+
+        function switchTab(t) {
+            document.getElementById('rev-section').classList.toggle('hidden', t !== 'rev');
+            document.getElementById('history-section').classList.toggle('hidden', t !== 'history');
+            document.getElementById('tab-rev-btn').className = t === 'rev' ? 'px-8 py-4 text-[11px] font-bold uppercase bg-blue-600 text-white' : 'px-8 py-4 text-[11px] font-bold uppercase text-slate-500 hover:text-white';
+            document.getElementById('tab-history-btn').className = t === 'history' ? 'px-8 py-4 text-[11px] font-bold uppercase bg-blue-600 text-white' : 'px-8 py-4 text-[11px] font-bold uppercase text-slate-500 hover:text-white';
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EverDistro | Account Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #020617; 
+            color: #f8fafc; 
+            -webkit-font-smoothing: antialiased; 
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .settings-card {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 32px;
+        }
+
+        .studio-input {
+            width: 100%;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            transition: all 0.2s;
+            outline: none;
+        }
+        .studio-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .studio-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .studio-label { 
+            font-size: 10px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            color: #64748b; 
+            margin-bottom: 8px; 
+            display: block; 
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .nav-back {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        } 
+        .nav-back:hover { color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <!-- Top Navigation -->
+        <div class="w-full max-w-500 flex flex-col">
+            <a href="dashboard.html" class="nav-back w-fit">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div class="settings-card shadow-2xl">
+            <div class="mb-8">
+                <h1 class="text-xl font-bold">Account Settings</h1>
+                <p class="text-xs text-slate-500 mt-1">Manage your identity and security.</p>
+            </div>
+
+            <div class="space-y-6">
+                
+                <!-- Identity Section -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="studio-label">Display Name</label>
+                        <input type="text" id="full_name" class="studio-input" placeholder="Enter your name">
+                    </div>
+                    <div>
+                        <label class="studio-label">Label / Studio</label>
+                        <input type="text" id="company_name" class="studio-input" placeholder="Record Label Name">
+                    </div>
+                    <div>
+                        <label class="studio-label">Login Email</label>
+                        <input type="text" id="email_display" class="studio-input" disabled>
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5 my-2"></div>
+
+                <!-- Password Section -->
+                <div class="space-y-4">
+                    <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Update Password</h3>
+                    
+                    <div>
+                        <label class="studio-label text-rose-400">Current Password</label>
+                        <input type="password" id="current_password" class="studio-input" placeholder="Verify existing password">
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="studio-label">New Password</label>
+                            <input type="password" id="new_password" class="studio-input" placeholder="Min. 6 characters">
+                        </div>
+                        <div>
+                            <label class="studio-label">Confirm New Password</label>
+                            <input type="password" id="confirm_password" class="studio-input" placeholder="Repeat new password">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="statusMsg" class="hidden text-center py-2 text-[11px] font-bold uppercase tracking-wider"></div>
+
+                <button onclick="saveAll()" id="saveBtn" class="btn-primary mt-4">
+                    <i data-lucide="save" class="w-4 h-4"></i>
+                    Update Account
+                </button>
+            </div>
+        </div>
+
+        <p class="mt-8 text-[10px] text-slate-700 font-bold uppercase tracking-[0.3em]">EverDistro </p>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
+        const SUPABASE_KEY = 'YOUR_ANON_KEY';
+        const { createClient } = window.supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const user = JSON.parse(localStorage.getItem('everdistro_user'));
+
+        async function init() {
+            if (!user) return window.location.href = 'index.html';
+            lucide.createIcons();
+            
+            document.getElementById('email_display').value = user.email;
+
+            const { data: profile } = await _supabase
+                .from('profiles')
+                .select('full_name, company_name')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                document.getElementById('full_name').value = profile.full_name || '';
+                document.getElementById('company_name').value = profile.company_name || '';
+            }
+        }
+
+        function showMessage(msg, isError = false) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = msg;
+            el.className = `text-center py-2 text-[11px] font-bold uppercase tracking-wider ${isError ? 'text-rose-500' : 'text-emerald-500'}`;
+            el.classList.remove('hidden');
+        }
+
+        async function saveAll() {
+            const btn = document.getElementById('saveBtn');
+            const fullName = document.getElementById('full_name').value;
+            const labelName = document.getElementById('company_name').value;
+            const currentPw = document.getElementById('current_password').value;
+            const newPw = document.getElementById('new_password').value;
+            const confirmPw = document.getElementById('confirm_password').value;
+
+            btn.disabled = true;
+            btn.innerHTML = `<div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>`;
+
+            try {
+                // 1. Update Profile (Name and Label)
+                const { error: profErr } = await _supabase
+                    .from('profiles')
+                    .update({ full_name: fullName, company_name: labelName })
+                    .eq('id', user.id);
+
+                if (profErr) throw profErr;
+
+                // 2. Handle Password Change
+                if (newPw) {
+                    if (!currentPw) throw new Error("Current password required to change password");
+                    if (newPw !== confirmPw) throw new Error("New passwords do not match");
+                    if (newPw.length < 6) throw new Error("New password too short");
+
+                    // Step A: Verify Current Password by attempting a re-login
+                    const { error: signInErr } = await _supabase.auth.signInWithPassword({
+                        email: user.email,
+                        password: currentPw
+                    });
+
+                    if (signInErr) throw new Error("Current password is incorrect");
+
+                    // Step B: Update to New Password
+                    const { error: authErr } = await _supabase.auth.updateUser({ password: newPw });
+                    if (authErr) throw authErr;
+
+                    // Clear fields
+                    document.getElementById('current_password').value = '';
+                    document.getElementById('new_password').value = '';
+                    document.getElementById('confirm_password').value = '';
+                }
+
+                showMessage("Account updated successfully");
+
+            } catch (err) {
+                showMessage(err.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> Update Account`;
+                lucide.createIcons();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

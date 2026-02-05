@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EverDistro | Join</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #020617; 
+            color: #f8fafc;
+            -webkit-font-smoothing: antialiased;
+        }
+        .input-field {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            transition: all 0.2s;
+        }
+        .input-field:focus {
+            border-color: #3b82f6;
+            background: #1e293b;
+            outline: none;
+        }
+        .type-card {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .type-card.selected {
+            border-color: #3b82f6;
+            background: #1e293b;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        .btn-main {
+            background: #ffffff;
+            color: #020617;
+            transition: all 0.2s;
+        }
+        .btn-main:hover { background: #f1f5f9; transform: translateY(-1px); }
+        .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6">
+
+    <div class="w-full max-w-[340px] flex flex-col items-center">
+        
+        <!-- Branding -->
+        <div class="flex flex-col items-center mb-8">
+            <img src="https://vinxbbpboupirnyxwghz.supabase.co/storage/v1/object/public/Ever-Music/file_00000000535c71f4a154bd2a598fddd0.png" 
+                 alt="Logo" 
+                 class="h-10 w-auto mb-3">
+            <h1 class="text-xl font-bold tracking-tight">EverDistro</h1>
+            <p id="stepTitle" class="text-[12px] text-slate-500 font-medium mt-1 uppercase tracking-widest">Step 1: Profile Type</p>
+        </div>
+
+        <!-- Registration Container -->
+        <div class="w-full min-h-[300px]">
+            
+            <!-- Success Screen -->
+            <div id="successScreen" class="hidden fade-in text-center space-y-4">
+                <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <i data-lucide="check" class="w-6 h-6"></i>
+                </div>
+                <h2 class="text-lg font-bold">Request Sent</h2>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    We've received your application for <span id="successEmail" class="text-white"></span>. 
+                    Our team will review your profile and reach out soon.
+                </p>
+                <button onclick="window.location.href='index.html'" class="btn-main w-full py-3 rounded-xl text-sm font-semibold">
+                    Back to Login
+                </button>
+            </div>
+
+            <!-- Step 1: Type Selection -->
+            <div id="step1" class="fade-in space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="selectType('label')" id="labelBtn" class="type-card p-6 rounded-2xl flex flex-col items-center gap-3">
+                        <i data-lucide="building-2" class="w-6 h-6 text-slate-500"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider">Label</span>
+                    </div>
+                    <div onclick="selectType('artist_collaborator')" id="artistBtn" class="type-card p-6 rounded-2xl flex flex-col items-center gap-3">
+                        <i data-lucide="user" class="w-6 h-6 text-slate-500"></i>
+                        <span class="text-xs font-bold uppercase tracking-wider">Artist</span>
+                    </div>
+                </div>
+                <button onclick="goToStep2()" class="btn-main w-full py-3 rounded-xl text-sm font-semibold mt-4">
+                    Next
+                </button>
+            </div>
+
+            <!-- Step 2: Details -->
+            <div id="step2" class="hidden fade-in space-y-3">
+                <input type="text" id="fullName" class="input-field w-full px-4 py-3 rounded-xl text-sm placeholder:text-slate-500" placeholder="Full Name" />
+                <input type="email" id="email" class="input-field w-full px-4 py-3 rounded-xl text-sm placeholder:text-slate-500" placeholder="Email Address" />
+                <input type="text" id="labelName" class="input-field w-full px-4 py-3 rounded-xl text-sm placeholder:text-slate-500" placeholder="Stage or Studio Name" />
+                
+                <div class="flex gap-2 pt-2">
+                    <button onclick="goToStep1()" class="w-1/3 py-3 text-slate-400 text-xs font-bold uppercase tracking-widest">Back</button>
+                    <button onclick="goToStep3()" class="btn-main flex-1 py-3 rounded-xl text-sm font-semibold">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Application -->
+            <div id="step3" class="hidden fade-in space-y-4">
+                <textarea id="aboutLabel" class="input-field w-full px-4 py-3 rounded-xl text-sm placeholder:text-slate-500 h-32 resize-none" placeholder="Tell us about your music goals..."></textarea>
+                
+                <label class="flex items-start gap-3 cursor-pointer group">
+                    <input type="checkbox" id="terms" class="mt-1 w-4 h-4 rounded border-slate-800 bg-slate-900 text-blue-600 focus:ring-0" />
+                    <span class="text-[11px] text-slate-500 leading-normal group-hover:text-slate-400">I agree to the terms and manual application review.</span>
+                </label>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="goToStep2()" class="w-1/3 py-3 text-slate-400 text-xs font-bold uppercase tracking-widest">Back</button>
+                    <button onclick="submitApplication()" id="submitBtn" class="btn-main flex-1 py-3 rounded-xl text-sm font-semibold flex justify-center items-center">
+                        <span id="submitText">Apply Now</span>
+                        <span id="submitLoader" class="hidden animate-spin"><i data-lucide="loader-2" class="w-4 h-4"></i></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Error -->
+            <div id="errorMessage" class="hidden mt-4 text-center text-rose-400 text-[11px] font-medium p-2 bg-rose-500/10 rounded-lg border border-rose-500/20"></div>
+        </div>
+
+        <!-- Footnote -->
+        <p onclick="window.location.href='index.html'" class="mt-8 text-xs text-slate-600 font-medium cursor-pointer hover:text-white transition-colors">
+            Already have an account? Sign in
+        </p>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdHBwanNzeHZxanJ0dXlyYm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNzQyNjgsImV4cCI6MjA4NTg1MDI2OH0.O-2UWsBZrw8tyTCXhCcDNAhgY5Ro9_kZRlQoOSUGU3o';
+
+        let selectedType = '';
+        let formData = {};
+
+        function selectType(type) {
+            selectedType = type;
+            document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(type === 'label' ? 'labelBtn' : 'artistBtn').classList.add('selected');
+        }
+
+        function updateTitle(step, text) {
+            document.getElementById('stepTitle').textContent = `Step ${step}: ${text}`;
+        }
+
+        function goToStep1() {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            updateTitle(1, 'Profile Type');
+        }
+
+        function goToStep2() {
+            if (!selectedType) return alert('Please select a type.');
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            updateTitle(2, 'Basic Details');
+        }
+
+        function goToStep3() {
+            if (!document.getElementById('fullName').value || !document.getElementById('email').value) return alert('Fill in your details.');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.remove('hidden');
+            updateTitle(3, 'Biography');
+        }
+
+        async function submitApplication() {
+            const about = document.getElementById('aboutLabel').value;
+            const terms = document.getElementById('terms').checked;
+            if (!about || !terms) return alert('Please complete the form and accept terms.');
+
+            const btn = document.getElementById('submitBtn');
+            const text = document.getElementById('submitText');
+            const loader = document.getElementById('submitLoader');
+            const errDiv = document.getElementById('errorMessage');
+
+            text.classList.add('hidden');
+            loader.classList.remove('hidden');
+            btn.disabled = true;
+
+            const payload = {
+                application_type: selectedType,
+                full_name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                label_name: document.getElementById('labelName').value,
+                about_label: about,
+                status: 'pending',
+                submission_source: 'website'
+            };
+
+            try {
+                // Submit Application
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/label_applications`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error('Submission failed.');
+
+                // Silent Signup (Background)
+                fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: payload.email,
+                        password: Math.random().toString(36).slice(-10) + '!',
+                        data: { full_name: payload.full_name, company_name: payload.label_name }
+                    })
+                });
+
+                // Show Success
+                document.getElementById('step3').classList.add('hidden');
+                document.getElementById('stepTitle').classList.add('hidden');
+                document.getElementById('successEmail').textContent = payload.email;
+                document.getElementById('successScreen').classList.remove('hidden');
+
+            } catch (err) {
+                errDiv.textContent = err.message;
+                errDiv.classList.remove('hidden');
+                text.classList.remove('hidden');
+                loader.classList.add('hidden');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
