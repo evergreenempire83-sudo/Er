@@ -79,16 +79,16 @@
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Release Title</label>
-                        <input type="text" id="releaseTitle" class="studio-input w-full px-4 py-3" placeholder="Project Title">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Release Title *</label>
+                        <input type="text" id="releaseTitle" class="studio-input w-full px-4 py-3" placeholder="Project Title" required>
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Performer</label>
-                        <input type="text" id="primaryArtist" class="studio-input w-full px-4 py-3" placeholder="Artist Name">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Primary Performer *</label>
+                        <input type="text" id="primaryArtist" class="studio-input w-full px-4 py-3" placeholder="Artist Name" required>
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Main Genre</label>
-                        <select id="genre" class="studio-input w-full px-4 py-3 appearance-none">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Main Genre *</label>
+                        <select id="genre" class="studio-input w-full px-4 py-3 appearance-none" required>
                             <option value="">Select Genre</option>
                             <optgroup label="Popular">
                                 <option value="Afrobeat">Afrobeat</option>
@@ -110,9 +110,22 @@
                         </select>
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Delivery Date (Min 7 Days)</label>
-                        <input type="date" id="releaseDate" class="studio-input w-full px-4 py-3">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Delivery Date (Min 7 Days) *</label>
+                        <input type="date" id="releaseDate" class="studio-input w-full px-4 py-3" required>
                     </div>
+                </div>
+
+                <!-- Additional Artists Field -->
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Additional Artists (Optional)</label>
+                    <input type="text" id="additionalArtists" class="studio-input w-full px-4 py-3" placeholder="Separate with commas">
+                    <p class="text-[10px] text-slate-500">Featured artists, producers, etc.</p>
+                </div>
+
+                <!-- Explicit Content Checkbox -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="isExplicit" class="w-4 h-4 rounded border-white/10 bg-slate-900 text-blue-600 focus:ring-0">
+                    <label for="isExplicit" class="text-sm text-slate-300">Contains explicit content</label>
                 </div>
             </div>
 
@@ -131,7 +144,7 @@
                         <i data-lucide="image-plus" class="w-8 h-8 text-slate-600 group-hover:text-blue-500 mb-2"></i>
                         <span class="text-[10px] font-bold text-slate-500 uppercase">3000 x 3000 JPG/PNG</span>
                     </div>
-                    <input type="file" id="artworkUpload" class="hidden" accept="image/*" onchange="previewArtwork(event)">
+                    <input type="file" id="artworkUpload" class="hidden" accept="image/*" onchange="previewArtwork(event)" required>
                     <p class="text-[10px] text-slate-500 font-medium">Artwork must not contain logos, URLs, or blurred text.</p>
                 </div>
             </div>
@@ -144,15 +157,15 @@
             </div>
         </div>
 
-        <!-- Step 3: Track Assets (Schema Compliant) -->
+        <!-- Step 3: Track Assets -->
         <div id="step3" class="hidden space-y-6 pb-20">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Asset Registry</h3>
-                <button onclick="addNewTrack()" id="addTrackBtn" class="hidden btn-studio-secondary px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider">+ Add Record</button>
+                <button onclick="addNewTrack()" id="addTrackBtn" class="hidden btn-studio-secondary px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider">+ Add Track</button>
             </div>
 
             <div id="tracksContainer" class="space-y-6">
-                <!-- Tracks injected here -->
+                <!-- Tracks will be injected here -->
             </div>
 
             <div class="cms-card p-6 bg-blue-500/5 border-blue-500/10 flex items-start gap-4">
@@ -173,10 +186,22 @@
         </div>
     </main>
 
-    <script>
-        lucide.createIcons();
+<script>
+    lucide.createIcons();
 
-        // CMS Date Constraint (Min 7 days)
+    // ==================== CONFIGURATION ====================
+    const SUPABASE_URL = 'https://yuiazeclnawkdriahswj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aWF6ZWNsbmF3a2RyaWFoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxOTE0ODAsImV4cCI6MjA4NTc2NzQ4MH0.ftF6Y0tehI4IWAFMDdEWqZU1zDmcbBfXbQPoXEczz54';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let currentUser = null;
+    let releaseType = 'single';
+    let artworkFile = null;
+    let trackCounter = 0;
+
+    // ==================== INITIALIZATION ====================
+    window.onload = async () => {
+        // Set minimum release date (7 days from now)
         const releaseDateInput = document.getElementById('releaseDate');
         const minDate = new Date();
         minDate.setDate(minDate.getDate() + 7);
@@ -184,195 +209,597 @@
         releaseDateInput.min = minStr;
         releaseDateInput.value = minStr;
 
-        const SUPABASE_URL = 'https://nitppjssxvqjrtuyrbos.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pdHBwanNzeHZxanJ0dXlyYm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNzQyNjgsImV4cCI6MjA4NTg1MDI2OH0.O-2UWsBZrw8tyTCXhCcDNAhgY5Ro9_kZRlQoOSUGU3o';
-        const currentUser = JSON.parse(localStorage.getItem('everdistro_user'));
+        await checkAuth();
+        addNewTrack(); // Add first track
+    };
 
-        let releaseType = 'single';
-        let artworkFile = null;
-        let trackCounter = 0;
-
-        window.onload = () => addNewTrack();
-
-        function setType(type) {
-            releaseType = type;
-            document.getElementById('singleBtn').className = type === 'single' ? 'px-6 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white' : 'px-6 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
-            document.getElementById('albumBtn').className = type === 'album' ? 'px-6 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white' : 'px-6 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
-            document.getElementById('addTrackBtn').style.display = type === 'album' ? 'block' : 'none';
+    // ==================== AUTHENTICATION ====================
+    async function checkAuth() {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
             
-            if(type === 'single') {
-                const tracks = document.querySelectorAll('.asset-track-card');
-                for(let i = 1; i < tracks.length; i++) tracks[i].remove();
-                trackCounter = 1;
+            if (!session) {
+                window.location.href = 'index.html';
+                return;
             }
+            
+            // Get or create user
+            const { data: userData, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('auth_id', session.user.id)
+                .single();
+            
+            if (error && error.code === 'PGRST116') {
+                // User doesn't exist - create them
+                const { data: newUser, error: createError } = await supabase
+                    .from('users')
+                    .insert({
+                        auth_id: session.user.id,
+                        email: session.user.email,
+                        display_name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                        label_name: session.user.user_metadata?.full_name || session.user.email.split('@')[0] + ' Label',
+                        role: 'creator',
+                        account_status: 'active'
+                    })
+                    .select()
+                    .single();
+                
+                if (createError) {
+                    console.error('Error creating user:', createError);
+                    alert('Error setting up account. Please contact support.');
+                    return;
+                }
+                
+                currentUser = newUser;
+            } else if (error) {
+                console.error('Error fetching user:', error);
+                alert('Authentication error. Please try again.');
+                window.location.href = 'index.html';
+                return;
+            } else {
+                currentUser = userData;
+                
+                if (currentUser.account_status !== 'active') {
+                    alert(`Account is ${currentUser.account_status}. Contact support.`);
+                    window.location.href = 'index.html';
+                    return;
+                }
+            }
+            
+            console.log('Current user:', currentUser);
+            
+        } catch (error) {
+            console.error('Auth error:', error);
+            window.location.href = 'index.html';
         }
+    }
 
-        function addNewTrack() {
-            trackCounter++;
-            const container = document.getElementById('tracksContainer');
-            const trackHtml = `
-                <div class="cms-card p-6 asset-track-card space-y-6" id="track-card-${trackCounter}">
-                    <div class="flex items-center justify-between border-b border-white/5 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="w-6 h-6 rounded bg-blue-600/10 text-blue-500 text-[10px] font-bold flex items-center justify-center">${trackCounter}</span>
-                            <input type="text" class="track-title bg-transparent border-none outline-none font-bold text-sm w-full text-white" placeholder="Track Title">
-                        </div>
-                        ${trackCounter > 1 ? `<button onclick="removeTrack(${trackCounter})" class="text-slate-500 hover:text-rose-500"><i data-lucide="x" class="w-4 h-4"></i></button>` : ''}
+    // ==================== FORM NAVIGATION ====================
+    function setType(type) {
+        releaseType = type;
+        const singleBtn = document.getElementById('singleBtn');
+        const albumBtn = document.getElementById('albumBtn');
+        const addTrackBtn = document.getElementById('addTrackBtn');
+        
+        if (type === 'single') {
+            singleBtn.className = 'px-6 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white';
+            albumBtn.className = 'px-6 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
+            addTrackBtn.style.display = 'none';
+            
+            // Remove extra tracks if switching from album to single
+            const tracks = document.querySelectorAll('.asset-track-card');
+            if (tracks.length > 1) {
+                for(let i = 1; i < tracks.length; i++) {
+                    tracks[i].remove();
+                }
+                trackCounter = 1;
+                const firstTrack = document.querySelector('.asset-track-card');
+                if (firstTrack) {
+                    const trackNumberSpan = firstTrack.querySelector('.w-6.h-6');
+                    if (trackNumberSpan) trackNumberSpan.textContent = '1';
+                }
+            }
+        } else {
+            singleBtn.className = 'px-6 py-1.5 rounded-md text-xs font-bold transition-all text-slate-500 hover:text-white';
+            albumBtn.className = 'px-6 py-1.5 rounded-md text-xs font-bold transition-all bg-blue-600 text-white';
+            addTrackBtn.style.display = 'block';
+        }
+    }
+
+    function goToStep1() { 
+        hideAll(); 
+        document.getElementById('step1').classList.remove('hidden'); 
+        setActiveDot(1); 
+    }
+    
+    function goToStep2() { 
+        const title = document.getElementById('releaseTitle').value.trim();
+        const genre = document.getElementById('genre').value;
+        const artist = document.getElementById('primaryArtist').value.trim();
+        
+        if(!title) {
+            alert("Release title is required.");
+            return;
+        }
+        if(!genre) {
+            alert("Please select a genre.");
+            return;
+        }
+        if(!artist) {
+            alert("Primary artist is required.");
+            return;
+        }
+        
+        hideAll(); 
+        document.getElementById('step2').classList.remove('hidden'); 
+        setActiveDot(2); 
+    }
+    
+    function goToStep3() { 
+        if(!artworkFile) {
+            alert("Cover art is required.");
+            return;
+        }
+        
+        // Validate art cover dimensions
+        const img = new Image();
+        img.src = URL.createObjectURL(artworkFile);
+        img.onload = () => {
+            URL.revokeObjectURL(img.src);
+            if (img.width !== 3000 || img.height !== 3000) {
+                alert(`Art cover must be exactly 3000x3000 pixels. Current: ${img.width}x${img.height}`);
+                return;
+            }
+            hideAll(); 
+            document.getElementById('step3').classList.remove('hidden'); 
+            setActiveDot(3);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(img.src);
+            alert('Error loading image. Please try another file.');
+        };
+    }
+    
+    function hideAll() { 
+        ['step1','step2','step3'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.classList.add('hidden');
+        }); 
+    }
+    
+    function setActiveDot(step) { 
+        ['dot1','dot2','dot3'].forEach((id, i) => {
+            const dot = document.getElementById(id);
+            if (dot) dot.classList.toggle('active', i + 1 === step);
+        }); 
+    }
+
+    // ==================== TRACK MANAGEMENT ====================
+    function addNewTrack() {
+        trackCounter++;
+        const container = document.getElementById('tracksContainer');
+        const trackHtml = `
+            <div class="cms-card p-6 asset-track-card space-y-6" id="track-card-${trackCounter}">
+                <div class="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded bg-blue-600/10 text-blue-500 text-[10px] font-bold flex items-center justify-center">${trackCounter}</span>
+                        <input type="text" class="track-title studio-input bg-transparent border-none outline-none font-bold text-sm w-full text-white" placeholder="Track Title *" required>
                     </div>
-                    
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <!-- File & Basic Info -->
-                        <div class="space-y-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Studio Audio (WAV/FLAC Only)</label>
-                                <div onclick="document.getElementById('audio-${trackCounter}').click()" class="studio-input p-3 cursor-pointer flex justify-between items-center">
-                                    <span id="audio-name-${trackCounter}" class="text-[11px] text-slate-400 truncate">Select File</span>
-                                    <i data-lucide="music" class="w-4 h-4 text-slate-600"></i>
-                                </div>
-                                <input type="file" id="audio-${trackCounter}" class="track-audio-file hidden" accept="audio/*" onchange="updateAudioName(${trackCounter}, this)">
+                    ${trackCounter > 1 ? `<button type="button" onclick="removeTrack(${trackCounter})" class="text-slate-500 hover:text-rose-500"><i data-lucide="x" class="w-4 h-4"></i></button>` : ''}
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Audio File -->
+                    <div class="space-y-4">
+                        <div class="space-y-1.5">
+                            <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Audio File (MP3 Only) *</label>
+                            <div onclick="document.getElementById('audio-${trackCounter}').click()" class="studio-input p-3 cursor-pointer flex justify-between items-center">
+                                <span id="audio-name-${trackCounter}" class="text-[11px] text-slate-400 truncate">Select MP3 File</span>
+                                <i data-lucide="music" class="w-4 h-4 text-slate-600"></i>
                             </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Featured Performer(s)</label>
-                                <input type="text" class="track-featured studio-input w-full p-3" placeholder="Separate with commas">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Producer(s)</label>
-                                <input type="text" class="track-producer studio-input w-full p-3" placeholder="Music Producer">
-                            </div>
+                            <input type="file" id="audio-${trackCounter}" class="track-audio-file hidden" accept="audio/mpeg,.mp3" onchange="updateAudioName(${trackCounter}, this)" required>
+                            <p class="text-[9px] text-slate-500">MP3 format only, max 100MB</p>
                         </div>
+                    </div>
 
-                        <!-- Legal Credits -->
-                        <div class="space-y-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Songwriter (Legal Name)</label>
-                                <input type="text" class="track-songwriter studio-input w-full p-3" placeholder="Mandatory for Royalties">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Composer (Legal Name)</label>
-                                <input type="text" class="track-composer studio-input w-full p-3" placeholder="Music Creator">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">ISRC / Asset ID (Optional)</label>
-                                <input type="text" class="track-isrc studio-input w-full p-3" placeholder="Leave empty for auto-assign">
-                            </div>
+                    <!-- Track Info -->
+                    <div class="space-y-4">
+                        <div class="space-y-1.5">
+                            <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Duration (seconds) *</label>
+                            <input type="number" class="track-duration studio-input w-full p-3" placeholder="180" min="30" max="3600" required>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Explicit Content</label>
+                            <select class="track-explicit studio-input w-full p-3">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-            `;
-            container.insertAdjacentHTML('beforeend', trackHtml);
-            lucide.createIcons();
-        }
 
-        function removeTrack(id) {
-            document.getElementById(`track-card-${id}`).remove();
-            // Re-calculate track counters if needed, but simple ID removal is fine for now
-        }
+                <!-- Additional Track Fields -->
+                <div class="grid md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                    <div class="space-y-1.5">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Featured Artist(s)</label>
+                        <input type="text" class="track-featured studio-input w-full p-3" placeholder="Separate with commas">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Track Genre (Optional)</label>
+                        <input type="text" class="track-genre studio-input w-full p-3" placeholder="Leave empty to use release genre">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', trackHtml);
+        lucide.createIcons();
+    }
 
-        function updateAudioName(id, input) {
-            document.getElementById(`audio-name-${id}`).innerText = input.files[0]?.name || "Select File";
-        }
-
-        function goToStep1() { hideAll(); document.getElementById('step1').classList.remove('hidden'); setActiveDot(1); }
-        function goToStep2() { 
-            if(!document.getElementById('releaseTitle').value || !document.getElementById('genre').value) return alert("Metadata required.");
-            hideAll(); document.getElementById('step2').classList.remove('hidden'); setActiveDot(2); 
-        }
-        function goToStep3() { 
-            if(!artworkFile) return alert("Cover art required.");
-            hideAll(); document.getElementById('step3').classList.remove('hidden'); setActiveDot(3); 
-        }
-        function hideAll() { ['step1','step2','step3'].forEach(id => document.getElementById(id).classList.add('hidden')); }
-        function setActiveDot(step) { ['dot1','dot2','dot3'].forEach((id, i) => document.getElementById(id).classList.toggle('active', i + 1 === step)); }
-
-        function previewArtwork(e) {
-            artworkFile = e.target.files[0];
-            if(artworkFile) {
-                const reader = new FileReader();
-                reader.onload = (ev) => document.getElementById('artworkPreview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`;
-                reader.readAsDataURL(artworkFile);
-            }
-        }
-
-        async function submitRelease() {
-            const btn = document.getElementById('submitBtn');
-            const trackItems = document.querySelectorAll('.asset-track-card');
-            
-            btn.disabled = true;
-            document.getElementById('submitText').innerText = "Syncing Assets...";
-            document.getElementById('submitLoader').classList.remove('hidden');
-
-            try {
-                // 1. Upload Art
-                const artName = `artwork/${currentUser.id}/${Date.now()}.jpg`;
-                const artRes = await fetch(`${SUPABASE_URL}/storage/v1/object/artwork/${artName}`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                    body: artworkFile
-                });
-
-                // 2. Insert Release (Schema: releases)
-                const releaseRes = await fetch(`${SUPABASE_URL}/rest/v1/releases`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-                    body: JSON.stringify({
-                        user_id: currentUser.id,
-                        title: document.getElementById('releaseTitle').value,
-                        primary_artist: document.getElementById('primaryArtist').value,
-                        type: releaseType,
-                        genre: document.getElementById('genre').value,
-                        release_date: document.getElementById('releaseDate').value,
-                        artwork_url: artName,
-                        status: 'pending'
-                    })
-                });
-                const release = (await releaseRes.json())[0];
-
-                // 3. Process All Tracks (Schema: tracks)
-                for (const item of trackItems) {
-                    const audioFile = item.querySelector('.track-audio-file').files[0];
-                    let audioPath = null;
-                    
-                    if (audioFile) {
-                        audioPath = `audio/${currentUser.id}/${Date.now()}_${audioFile.name}`;
-                        await fetch(`${SUPABASE_URL}/storage/v1/object/audio-files/${audioPath}`, {
-                            method: 'POST',
-                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                            body: audioFile
-                        });
-                    }
-
-                    await fetch(`${SUPABASE_URL}/rest/v1/tracks`, {
-                        method: 'POST',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            release_id: release.id,
-                            user_id: currentUser.id,
-                            title: item.querySelector('.track-title').value,
-                            featured_artist: item.querySelector('.track-featured').value,
-                            producer: item.querySelector('.track-producer').value,
-                            songwriter: item.querySelector('.track-songwriter').value,
-                            composer: item.querySelector('.track-composer').value,
-                            isrc: item.querySelector('.track-isrc').value,
-                            file_url: audioPath,
-                            content_id_enabled: document.getElementById('globalContentId').checked,
-                            monetization_status: 'pending'
-                        })
-                    });
+    function removeTrack(id) {
+        const trackElement = document.getElementById(`track-card-${id}`);
+        if (trackElement) {
+            trackElement.remove();
+            // Renumber remaining tracks
+            const tracks = document.querySelectorAll('.asset-track-card');
+            tracks.forEach((track, index) => {
+                const trackNumber = index + 1;
+                const trackNumberSpan = track.querySelector('.w-6.h-6');
+                if (trackNumberSpan) trackNumberSpan.textContent = trackNumber;
+                
+                // Update IDs
+                track.id = `track-card-${trackNumber}`;
+                const fileInput = track.querySelector('.track-audio-file');
+                if (fileInput) {
+                    fileInput.id = `audio-${trackNumber}`;
+                    fileInput.onchange = (e) => updateAudioName(trackNumber, e.target);
                 }
+                const audioName = track.querySelector(`[id^="audio-name-"]`);
+                if (audioName) audioName.id = `audio-name-${trackNumber}`;
+                
+                // Update remove button
+                const removeBtn = track.querySelector('button[onclick*="removeTrack"]');
+                if (removeBtn) {
+                    if (trackNumber === 1) {
+                        removeBtn.remove();
+                    } else {
+                        removeBtn.onclick = () => removeTrack(trackNumber);
+                    }
+                }
+            });
+            trackCounter = tracks.length;
+        }
+    }
 
-                alert('Asset delivery initialized successfully.');
-                window.location.href = 'releases.html';
+    function updateAudioName(id, input) {
+        const file = input.files[0];
+        if (file) {
+            // Validate MP3
+            if (!file.type.includes('audio/mpeg') && !file.name.toLowerCase().endsWith('.mp3')) {
+                alert('Please upload MP3 files only');
+                input.value = '';
+                document.getElementById(`audio-name-${id}`).innerText = "Select MP3 File";
+                return;
+            }
+            
+            // Validate size (100MB max)
+            if (file.size > 100 * 1024 * 1024) {
+                alert('File too large. Max 100MB');
+                input.value = '';
+                document.getElementById(`audio-name-${id}`).innerText = "Select MP3 File";
+                return;
+            }
+            
+            document.getElementById(`audio-name-${id}`).innerText = file.name;
+            
+            // Get audio duration
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(file);
+            audio.onloadedmetadata = () => {
+                const durationInput = document.querySelector(`#track-card-${id} .track-duration`);
+                if (durationInput && !durationInput.value) {
+                    durationInput.value = Math.round(audio.duration);
+                }
+                URL.revokeObjectURL(audio.src);
+            };
+            audio.onerror = () => {
+                URL.revokeObjectURL(audio.src);
+            };
+        }
+    }
 
-            } catch (err) {
-                console.error(err);
-                alert('Delivery error. Check connectivity.');
-                btn.disabled = false;
-                document.getElementById('submitText').innerText = "Initialize Delivery";
-                document.getElementById('submitLoader').classList.add('hidden');
+    function previewArtwork(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate image type
+        if (!file.type.includes('image/jpeg') && !file.type.includes('image/png')) {
+            alert('Please upload JPG or PNG files only');
+            e.target.value = '';
+            return;
+        }
+        
+        // Validate size
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Image too large. Max 10MB');
+            e.target.value = '';
+            return;
+        }
+        
+        artworkFile = file;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const preview = document.getElementById('artworkPreview');
+            if (preview) {
+                preview.innerHTML = `
+                    <img src="${ev.target.result}" class="w-full h-full object-cover rounded-xl">
+                    <div class="absolute bottom-2 right-2 bg-black/70 text-[10px] px-2 py-1 rounded">
+                        ${file.name}
+                    </div>
+                `;
+                preview.classList.remove('flex', 'flex-col', 'items-center', 'justify-center');
+            }
+        };
+        reader.onerror = () => {
+            alert('Error reading file. Please try another image.');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ==================== UPLOAD FUNCTIONS ====================
+    async function uploadArtCover(file) {
+        try {
+            const fileName = `art-${Date.now()}-${file.name.replace(/\s+/g, '-').toLowerCase()}`;
+            const filePath = `art-covers/${currentUser.id}/${fileName}`;
+            
+            const { data, error } = await supabase.storage
+                .from('art-covers')
+                .upload(filePath, file, {
+                    contentType: file.type,
+                    upsert: false
+                });
+            
+            if (error) throw error;
+            
+            const { data: { publicUrl } } = supabase.storage
+                .from('art-covers')
+                .getPublicUrl(filePath);
+                
+            return {
+                url: publicUrl,
+                path: filePath,
+                width: 3000,
+                height: 3000,
+                verified: true
+            };
+            
+        } catch (error) {
+            console.error('Error uploading art cover:', error);
+            throw new Error('Failed to upload art cover: ' + error.message);
+        }
+    }
+
+    async function uploadAudioFile(file, releaseId, trackNumber) {
+        try {
+            const fileName = `audio-${releaseId}-track-${trackNumber}-${Date.now()}.mp3`;
+            const filePath = `audio-uploads/${currentUser.id}/${fileName}`;
+            
+            const { data, error } = await supabase.storage
+                .from('audio-uploads')
+                .upload(filePath, file, {
+                    contentType: 'audio/mpeg',
+                    upsert: false
+                });
+            
+            if (error) throw error;
+            
+            // Get audio duration
+            const duration = await getAudioDuration(file);
+            
+            return {
+                path: filePath,
+                fileName: fileName,
+                originalName: file.name,
+                fileSize: file.size,
+                duration: duration
+            };
+            
+        } catch (error) {
+            console.error('Error uploading audio:', error);
+            throw new Error('Failed to upload audio: ' + error.message);
+        }
+    }
+
+    function getAudioDuration(file) {
+        return new Promise((resolve) => {
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(file);
+            audio.onloadedmetadata = () => {
+                resolve(Math.round(audio.duration));
+                URL.revokeObjectURL(audio.src);
+            };
+            audio.onerror = () => {
+                resolve(180);
+                URL.revokeObjectURL(audio.src);
+            };
+        });
+    }
+
+    // ==================== SUBMIT RELEASE ====================
+    async function submitRelease() {
+        const btn = document.getElementById('submitBtn');
+        const trackItems = document.querySelectorAll('.asset-track-card');
+        
+        // Validate all tracks
+        for (const item of trackItems) {
+            const title = item.querySelector('.track-title').value.trim();
+            const audioFile = item.querySelector('.track-audio-file').files[0];
+            
+            if (!title) {
+                alert(`Please enter a title for track ${item.querySelector('.w-6.h-6')?.textContent || 'Untitled'}`);
+                return;
+            }
+            if (!audioFile) {
+                alert(`Please upload audio for track: ${title || 'Untitled'}`);
+                return;
             }
         }
+        
+        btn.disabled = true;
+        document.getElementById('submitText').innerText = "Processing...";
+        document.getElementById('submitLoader').classList.remove('hidden');
 
-        function logout() { localStorage.removeItem('everdistro_user'); window.location.href = 'index.html'; }
-    </script>
+        try {
+            // 1. Upload Art Cover
+            console.log('Uploading art cover...');
+            const artData = await uploadArtCover(artworkFile);
+            
+            // 2. Create Release Record
+            console.log('Creating release record...');
+            const { data: release, error: releaseError } = await supabase
+                .from('releases')
+                .insert({
+                    user_id: currentUser.id,
+                    type: releaseType,
+                    status: 'pending',
+                    title: document.getElementById('releaseTitle').value.trim(),
+                    primary_artist: document.getElementById('primaryArtist').value.trim(),
+                    additional_artists: document.getElementById('additionalArtists').value 
+                        ? document.getElementById('additionalArtists').value.split(',').map(a => a.trim()).filter(a => a)
+                        : [],
+                    release_date: document.getElementById('releaseDate').value,
+                    genre: document.getElementById('genre').value,
+                    sub_genre: null,
+                    is_explicit: document.getElementById('isExplicit').checked,
+                    global_content_id_enabled: document.getElementById('globalContentId').checked,
+                    
+                    // Art Cover
+                    art_cover_url: artData.url,
+                    art_cover_storage_path: artData.path,
+                    art_cover_width: artData.width,
+                    art_cover_height: artData.height,
+                    art_cover_verified: artData.verified,
+                    
+                    // Audio info (for singles only)
+                    audio_storage_path: null,
+                    audio_file_name: null,
+                    audio_original_name: null,
+                    audio_file_size: null,
+                    audio_duration: null,
+                    audio_secured: false
+                })
+                .select()
+                .single();
+            
+            if (releaseError) {
+                console.error('Release creation error:', releaseError);
+                throw releaseError;
+            }
+            
+            console.log('Release created:', release.id);
+            
+            // 3. Process Tracks
+            let trackNumber = 1;
+            for (const item of trackItems) {
+                const audioFile = item.querySelector('.track-audio-file').files[0];
+                console.log(`Uploading track ${trackNumber} audio...`);
+                const audioData = await uploadAudioFile(audioFile, release.id, trackNumber);
+                
+                // Create Track Record
+                console.log(`Creating track ${trackNumber} record...`);
+                const { error: trackError } = await supabase
+                    .from('tracks')
+                    .insert({
+                        release_id: release.id,
+                        track_number: trackNumber,
+                        title: item.querySelector('.track-title').value.trim(),
+                        duration: parseInt(item.querySelector('.track-duration').value) || audioData.duration,
+                        featured_artists: item.querySelector('.track-featured').value 
+                            ? item.querySelector('.track-featured').value.split(',').map(a => a.trim()).filter(a => a)
+                            : [],
+                        is_explicit: item.querySelector('.track-explicit').value === 'true',
+                        genre: item.querySelector('.track-genre').value || document.getElementById('genre').value,
+                        
+                        // Audio File
+                        audio_storage_path: audioData.path,
+                        audio_file_name: audioData.fileName,
+                        audio_original_name: audioData.originalName,
+                        audio_file_size: audioData.fileSize,
+                        audio_duration_seconds: audioData.duration,
+                        audio_secured: false,
+                        
+                        // Ordering
+                        display_order: trackNumber
+                    });
+                
+                if (trackError) {
+                    console.error('Track creation error:', trackError);
+                    throw trackError;
+                }
+                
+                console.log(`Track ${trackNumber} created successfully`);
+                trackNumber++;
+            }
+            
+            // 4. If single, update release with first track's audio info
+            if (releaseType === 'single' && trackItems.length > 0) {
+                const firstTrack = trackItems[0];
+                const audioFile = firstTrack.querySelector('.track-audio-file').files[0];
+                const audioData = await getAudioDuration(audioFile);
+                
+                await supabase
+                    .from('releases')
+                    .update({
+                        audio_storage_path: `audio-uploads/${currentUser.id}/single-${release.id}.mp3`,
+                        audio_file_name: audioFile.name,
+                        audio_original_name: audioFile.name,
+                        audio_file_size: audioFile.size,
+                        audio_duration: audioData
+                    })
+                    .eq('id', release.id);
+            }
+            
+            // Success!
+            console.log('Release submission complete!');
+            alert('✅ Release submitted successfully! It will be reviewed within 24-48 hours.');
+            window.location.href = 'dashboard.html';
+            
+        } catch (error) {
+            console.error('Submission error:', error);
+            
+            let errorMessage = 'Error submitting release. ';
+            if (error.message.includes('permission denied')) {
+                errorMessage += 'Permission denied. Please check RLS policies.';
+            } else if (error.message.includes('network')) {
+                errorMessage += 'Network error. Please check connection.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            alert(errorMessage);
+            
+            // Reset button
+            btn.disabled = false;
+            document.getElementById('submitText').innerText = "Initialize Delivery";
+            document.getElementById('submitLoader').classList.add('hidden');
+        }
+    }
+
+    function logout() {
+        supabase.auth.signOut();
+        window.location.href = 'index.html';
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            submitRelease();
+        }
+        if (e.key === 'Escape') {
+            window.location.href = 'dashboard.html';
+        }
+    });
+</script>
 </body>
 </html>
