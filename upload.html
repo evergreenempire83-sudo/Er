@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f1f5f9; -webkit-font-smoothing: antialiased; }
         .sidebar-link { transition: all 0.2s; color: #94a3b8; }
@@ -26,9 +27,44 @@
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        
+        /* Debug panel */
+        #debugPanel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .debug-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            z-index: 1001;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Debug Toggle Button -->
+    <button class="debug-btn" onclick="toggleDebug()">🔍</button>
+    
+    <!-- Debug Panel -->
+    <div id="debugPanel"></div>
 
     <!-- CMS Sidebar -->
     <aside class="hidden lg:flex w-64 flex-col bg-[#020617] border-r border-white/5 h-screen sticky top-0 p-6">
@@ -90,23 +126,9 @@
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Main Genre *</label>
                         <select id="genre" class="studio-input w-full px-4 py-3 appearance-none" required>
                             <option value="">Select Genre</option>
-                            <optgroup label="Popular">
-                                <option value="Afrobeat">Afrobeat</option>
-                                <option value="Amapiano">Amapiano</option>
-                                <option value="Hip-Hop">Hip-Hop / Rap</option>
-                                <option value="Pop">Pop</option>
-                                <option value="R&B">R&B / Soul</option>
-                                <option value="Dancehall">Dancehall</option>
-                            </optgroup>
-                            <optgroup label="Global">
-                                <option value="Alternative">Alternative</option>
-                                <option value="Electronic">Electronic / EDM</option>
-                                <option value="Drill">Drill</option>
-                                <option value="Gospel">Gospel</option>
-                                <option value="Latin">Latin</option>
-                                <option value="Reggaeton">Reggaeton</option>
-                                <option value="Rock">Rock</option>
-                            </optgroup>
+                            <option value="Hip-Hop">Hip-Hop / Rap</option>
+                            <option value="Pop">Pop</option>
+                            <option value="R&B">R&B / Soul</option>
                         </select>
                     </div>
                     <div class="space-y-1.5">
@@ -119,7 +141,6 @@
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Additional Artists (Optional)</label>
                     <input type="text" id="additionalArtists" class="studio-input w-full px-4 py-3" placeholder="Separate with commas">
-                    <p class="text-[10px] text-slate-500">Featured artists, producers, etc.</p>
                 </div>
 
                 <!-- Explicit Content Checkbox -->
@@ -172,7 +193,7 @@
                 <input type="checkbox" id="globalContentId" class="mt-1 w-4 h-4 rounded border-white/10 bg-slate-900 text-blue-600 focus:ring-0">
                 <div>
                     <label for="globalContentId" class="text-[11px] font-bold uppercase tracking-wider text-blue-100">Global Content ID Registry</label>
-                    <p class="text-[10px] text-slate-500 mt-1">Enable automated fingerprinting for all tracks in this release to protect and monetize across YouTube & Socials.</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Enable automated fingerprinting for all tracks in this release.</p>
                 </div>
             </div>
 
@@ -187,51 +208,114 @@
     </main>
 
 <script>
+    // ==================== DEBUG UTILITIES ====================
+    const DEBUG = true;
+    const debugLogs = [];
+    
+    function debugLog(message, data = null) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}`;
+        
+        if (DEBUG) {
+            console.log(logEntry, data || '');
+            debugLogs.push(logEntry);
+            
+            // Update debug panel
+            const debugPanel = document.getElementById('debugPanel');
+            if (debugPanel) {
+                debugPanel.innerHTML = debugLogs.slice(-10).map(log => `<div>${log}</div>`).join('');
+                debugPanel.scrollTop = debugPanel.scrollHeight;
+            }
+        }
+    }
+    
+    function toggleDebug() {
+        const panel = document.getElementById('debugPanel');
+        if (panel) {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+    
+    // ==================== INITIALIZATION ====================
+    debugLog('Page loading...');
+    
+    // Initialize Lucide icons
     lucide.createIcons();
-
-    // ==================== CONFIGURATION ====================
+    
+    // Initialize Supabase
     const SUPABASE_URL = 'https://yuiazeclnawkdriahswj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1aWF6ZWNsbmF3a2RyaWFoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxOTE0ODAsImV4cCI6MjA4NTc2NzQ4MH0.ftF6Y0tehI4IWAFMDdEWqZU1zDmcbBfXbQPoXEczz54';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let supabase;
+    try {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        debugLog('Supabase initialized');
+    } catch (error) {
+        debugLog('ERROR: Failed to initialize Supabase', error);
+        alert('Failed to initialize Supabase. Check console.');
+    }
+    
     let currentUser = null;
     let releaseType = 'single';
     let artworkFile = null;
     let trackCounter = 0;
-
-    // ==================== INITIALIZATION ====================
-    window.onload = async () => {
-        // Set minimum release date (7 days from now)
+    
+    // ==================== PAGE LOAD ====================
+    window.addEventListener('DOMContentLoaded', async () => {
+        debugLog('DOM Content Loaded');
+        
+        // Set minimum release date
         const releaseDateInput = document.getElementById('releaseDate');
-        const minDate = new Date();
-        minDate.setDate(minDate.getDate() + 7);
-        const minStr = minDate.toISOString().split("T")[0];
-        releaseDateInput.min = minStr;
-        releaseDateInput.value = minStr;
-
+        if (releaseDateInput) {
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 7);
+            const minStr = minDate.toISOString().split("T")[0];
+            releaseDateInput.min = minStr;
+            releaseDateInput.value = minStr;
+            debugLog('Release date set to min:', minStr);
+        }
+        
+        // Check authentication
         await checkAuth();
-        addNewTrack(); // Add first track
-    };
-
+        
+        // Add first track
+        addNewTrack();
+        
+        debugLog('Page initialization complete');
+    });
+    
     // ==================== AUTHENTICATION ====================
     async function checkAuth() {
+        debugLog('Checking authentication...');
+        
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             
-            if (!session) {
+            if (sessionError) {
+                debugLog('ERROR: Session error', sessionError);
+                alert('Session error: ' + sessionError.message);
                 window.location.href = 'index.html';
                 return;
             }
             
-            // Get or create user
-            const { data: userData, error } = await supabase
+            if (!session) {
+                debugLog('No session found, redirecting to login');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            debugLog('User authenticated:', session.user.email);
+            
+            // Get or create user in database
+            const { data: userData, error: userError } = await supabase
                 .from('users')
                 .select('*')
                 .eq('auth_id', session.user.id)
                 .single();
             
-            if (error && error.code === 'PGRST116') {
-                // User doesn't exist - create them
+            if (userError && userError.code === 'PGRST116') {
+                debugLog('User not found in database, creating...');
+                
                 const { data: newUser, error: createError } = await supabase
                     .from('users')
                     .insert({
@@ -246,38 +330,42 @@
                     .single();
                 
                 if (createError) {
-                    console.error('Error creating user:', createError);
-                    alert('Error setting up account. Please contact support.');
+                    debugLog('ERROR: Failed to create user', createError);
+                    alert('Failed to create user account: ' + createError.message);
                     return;
                 }
                 
                 currentUser = newUser;
-            } else if (error) {
-                console.error('Error fetching user:', error);
-                alert('Authentication error. Please try again.');
-                window.location.href = 'index.html';
+                debugLog('User created:', currentUser.id);
+                
+            } else if (userError) {
+                debugLog('ERROR: Failed to fetch user', userError);
+                alert('Failed to fetch user: ' + userError.message);
                 return;
             } else {
                 currentUser = userData;
+                debugLog('User found:', currentUser.id);
                 
                 if (currentUser.account_status !== 'active') {
+                    debugLog('Account not active:', currentUser.account_status);
                     alert(`Account is ${currentUser.account_status}. Contact support.`);
                     window.location.href = 'index.html';
                     return;
                 }
             }
             
-            console.log('Current user:', currentUser);
-            
         } catch (error) {
-            console.error('Auth error:', error);
+            debugLog('ERROR: Authentication failed', error);
+            alert('Authentication failed: ' + error.message);
             window.location.href = 'index.html';
         }
     }
-
+    
     // ==================== FORM NAVIGATION ====================
     function setType(type) {
+        debugLog('Setting release type to:', type);
         releaseType = type;
+        
         const singleBtn = document.getElementById('singleBtn');
         const albumBtn = document.getElementById('albumBtn');
         const addTrackBtn = document.getElementById('addTrackBtn');
@@ -290,6 +378,7 @@
             // Remove extra tracks if switching from album to single
             const tracks = document.querySelectorAll('.asset-track-card');
             if (tracks.length > 1) {
+                debugLog('Removing extra tracks for single');
                 for(let i = 1; i < tracks.length; i++) {
                     tracks[i].remove();
                 }
@@ -306,57 +395,75 @@
             addTrackBtn.style.display = 'block';
         }
     }
-
+    
     function goToStep1() { 
+        debugLog('Going to Step 1');
         hideAll(); 
         document.getElementById('step1').classList.remove('hidden'); 
         setActiveDot(1); 
     }
     
     function goToStep2() { 
-        const title = document.getElementById('releaseTitle').value.trim();
-        const genre = document.getElementById('genre').value;
-        const artist = document.getElementById('primaryArtist').value.trim();
+        debugLog('Validating Step 1...');
+        
+        const title = document.getElementById('releaseTitle')?.value.trim();
+        const genre = document.getElementById('genre')?.value;
+        const artist = document.getElementById('primaryArtist')?.value.trim();
+        
+        debugLog('Form values:', { title, genre, artist });
         
         if(!title) {
+            debugLog('ERROR: Release title required');
             alert("Release title is required.");
             return;
         }
         if(!genre) {
+            debugLog('ERROR: Genre required');
             alert("Please select a genre.");
             return;
         }
         if(!artist) {
+            debugLog('ERROR: Primary artist required');
             alert("Primary artist is required.");
             return;
         }
         
+        debugLog('Step 1 validation passed');
         hideAll(); 
         document.getElementById('step2').classList.remove('hidden'); 
         setActiveDot(2); 
     }
     
     function goToStep3() { 
+        debugLog('Validating Step 2...');
+        
         if(!artworkFile) {
+            debugLog('ERROR: Artwork file required');
             alert("Cover art is required.");
             return;
         }
         
         // Validate art cover dimensions
+        debugLog('Validating artwork dimensions...');
         const img = new Image();
         img.src = URL.createObjectURL(artworkFile);
+        
         img.onload = () => {
             URL.revokeObjectURL(img.src);
             if (img.width !== 3000 || img.height !== 3000) {
+                debugLog(`ERROR: Artwork dimensions invalid: ${img.width}x${img.height}`);
                 alert(`Art cover must be exactly 3000x3000 pixels. Current: ${img.width}x${img.height}`);
                 return;
             }
+            debugLog('Artwork validation passed');
             hideAll(); 
             document.getElementById('step3').classList.remove('hidden'); 
             setActiveDot(3);
         };
+        
         img.onerror = () => {
             URL.revokeObjectURL(img.src);
+            debugLog('ERROR: Failed to load artwork image');
             alert('Error loading image. Please try another file.');
         };
     }
@@ -374,10 +481,12 @@
             if (dot) dot.classList.toggle('active', i + 1 === step);
         }); 
     }
-
+    
     // ==================== TRACK MANAGEMENT ====================
     function addNewTrack() {
         trackCounter++;
+        debugLog(`Adding track ${trackCounter}`);
+        
         const container = document.getElementById('tracksContainer');
         const trackHtml = `
             <div class="cms-card p-6 asset-track-card space-y-6" id="track-card-${trackCounter}">
@@ -418,28 +527,20 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Additional Track Fields -->
-                <div class="grid md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
-                    <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Featured Artist(s)</label>
-                        <input type="text" class="track-featured studio-input w-full p-3" placeholder="Separate with commas">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Track Genre (Optional)</label>
-                        <input type="text" class="track-genre studio-input w-full p-3" placeholder="Leave empty to use release genre">
-                    </div>
-                </div>
             </div>
         `;
+        
         container.insertAdjacentHTML('beforeend', trackHtml);
         lucide.createIcons();
+        debugLog(`Track ${trackCounter} added`);
     }
-
+    
     function removeTrack(id) {
+        debugLog(`Removing track ${id}`);
         const trackElement = document.getElementById(`track-card-${id}`);
         if (trackElement) {
             trackElement.remove();
+            
             // Renumber remaining tracks
             const tracks = document.querySelectorAll('.asset-track-card');
             tracks.forEach((track, index) => {
@@ -468,14 +569,18 @@
                 }
             });
             trackCounter = tracks.length;
+            debugLog(`Tracks renumbered. Now ${trackCounter} tracks`);
         }
     }
-
+    
     function updateAudioName(id, input) {
         const file = input.files[0];
         if (file) {
+            debugLog(`Audio file selected for track ${id}:`, file.name);
+            
             // Validate MP3
             if (!file.type.includes('audio/mpeg') && !file.name.toLowerCase().endsWith('.mp3')) {
+                debugLog('ERROR: Not an MP3 file');
                 alert('Please upload MP3 files only');
                 input.value = '';
                 document.getElementById(`audio-name-${id}`).innerText = "Select MP3 File";
@@ -484,6 +589,7 @@
             
             // Validate size (100MB max)
             if (file.size > 100 * 1024 * 1024) {
+                debugLog('ERROR: File too large');
                 alert('File too large. Max 100MB');
                 input.value = '';
                 document.getElementById(`audio-name-${id}`).innerText = "Select MP3 File";
@@ -499,21 +605,29 @@
                 const durationInput = document.querySelector(`#track-card-${id} .track-duration`);
                 if (durationInput && !durationInput.value) {
                     durationInput.value = Math.round(audio.duration);
+                    debugLog(`Auto-filled duration: ${durationInput.value} seconds`);
                 }
                 URL.revokeObjectURL(audio.src);
             };
             audio.onerror = () => {
+                debugLog('ERROR: Failed to get audio duration');
                 URL.revokeObjectURL(audio.src);
             };
         }
     }
-
+    
     function previewArtwork(e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            debugLog('No artwork file selected');
+            return;
+        }
+        
+        debugLog('Artwork file selected:', file.name);
         
         // Validate image type
         if (!file.type.includes('image/jpeg') && !file.type.includes('image/png')) {
+            debugLog('ERROR: Not a JPG/PNG file');
             alert('Please upload JPG or PNG files only');
             e.target.value = '';
             return;
@@ -521,6 +635,7 @@
         
         // Validate size
         if (file.size > 10 * 1024 * 1024) {
+            debugLog('ERROR: Artwork file too large');
             alert('Image too large. Max 10MB');
             e.target.value = '';
             return;
@@ -528,6 +643,7 @@
         
         artworkFile = file;
         const reader = new FileReader();
+        
         reader.onload = (ev) => {
             const preview = document.getElementById('artworkPreview');
             if (preview) {
@@ -538,19 +654,27 @@
                     </div>
                 `;
                 preview.classList.remove('flex', 'flex-col', 'items-center', 'justify-center');
+                debugLog('Artwork preview updated');
             }
         };
+        
         reader.onerror = () => {
+            debugLog('ERROR: Failed to read artwork file');
             alert('Error reading file. Please try another image.');
         };
+        
         reader.readAsDataURL(file);
     }
-
+    
     // ==================== UPLOAD FUNCTIONS ====================
     async function uploadArtCover(file) {
         try {
+            debugLog('Starting art cover upload...');
+            
             const fileName = `art-${Date.now()}-${file.name.replace(/\s+/g, '-').toLowerCase()}`;
             const filePath = `art-covers/${currentUser.id}/${fileName}`;
+            
+            debugLog(`Uploading to: ${filePath}`);
             
             const { data, error } = await supabase.storage
                 .from('art-covers')
@@ -559,11 +683,16 @@
                     upsert: false
                 });
             
-            if (error) throw error;
+            if (error) {
+                debugLog('ERROR: Art cover upload failed', error);
+                throw error;
+            }
             
             const { data: { publicUrl } } = supabase.storage
                 .from('art-covers')
                 .getPublicUrl(filePath);
+            
+            debugLog('Art cover upload successful:', publicUrl);
                 
             return {
                 url: publicUrl,
@@ -574,15 +703,19 @@
             };
             
         } catch (error) {
-            console.error('Error uploading art cover:', error);
+            debugLog('FATAL: Art cover upload failed', error);
             throw new Error('Failed to upload art cover: ' + error.message);
         }
     }
-
+    
     async function uploadAudioFile(file, releaseId, trackNumber) {
         try {
+            debugLog(`Starting audio upload for track ${trackNumber}...`);
+            
             const fileName = `audio-${releaseId}-track-${trackNumber}-${Date.now()}.mp3`;
             const filePath = `audio-uploads/${currentUser.id}/${fileName}`;
+            
+            debugLog(`Uploading to: ${filePath}`);
             
             const { data, error } = await supabase.storage
                 .from('audio-uploads')
@@ -591,10 +724,14 @@
                     upsert: false
                 });
             
-            if (error) throw error;
+            if (error) {
+                debugLog('ERROR: Audio upload failed', error);
+                throw error;
+            }
             
             // Get audio duration
             const duration = await getAudioDuration(file);
+            debugLog(`Audio duration: ${duration} seconds`);
             
             return {
                 path: filePath,
@@ -605,41 +742,55 @@
             };
             
         } catch (error) {
-            console.error('Error uploading audio:', error);
+            debugLog('FATAL: Audio upload failed', error);
             throw new Error('Failed to upload audio: ' + error.message);
         }
     }
-
+    
     function getAudioDuration(file) {
         return new Promise((resolve) => {
             const audio = new Audio();
             audio.src = URL.createObjectURL(file);
+            
             audio.onloadedmetadata = () => {
-                resolve(Math.round(audio.duration));
+                const duration = Math.round(audio.duration);
+                debugLog(`Audio metadata loaded: ${duration} seconds`);
                 URL.revokeObjectURL(audio.src);
+                resolve(duration);
             };
+            
             audio.onerror = () => {
-                resolve(180);
+                debugLog('WARN: Could not get audio duration, using default');
                 URL.revokeObjectURL(audio.src);
+                resolve(180); // Default 3 minutes
             };
         });
     }
-
+    
     // ==================== SUBMIT RELEASE ====================
     async function submitRelease() {
+        debugLog('========== STARTING RELEASE SUBMISSION ==========');
+        
         const btn = document.getElementById('submitBtn');
         const trackItems = document.querySelectorAll('.asset-track-card');
         
+        debugLog(`Found ${trackItems.length} track(s)`);
+        
         // Validate all tracks
-        for (const item of trackItems) {
-            const title = item.querySelector('.track-title').value.trim();
-            const audioFile = item.querySelector('.track-audio-file').files[0];
+        for (let i = 0; i < trackItems.length; i++) {
+            const item = trackItems[i];
+            const title = item.querySelector('.track-title')?.value.trim();
+            const audioFile = item.querySelector('.track-audio-file')?.files[0];
+            
+            debugLog(`Validating track ${i + 1}:`, { title, hasAudio: !!audioFile });
             
             if (!title) {
-                alert(`Please enter a title for track ${item.querySelector('.w-6.h-6')?.textContent || 'Untitled'}`);
+                debugLog(`ERROR: Track ${i + 1} missing title`);
+                alert(`Please enter a title for track ${i + 1}`);
                 return;
             }
             if (!audioFile) {
+                debugLog(`ERROR: Track ${i + 1} missing audio`);
                 alert(`Please upload audio for track: ${title || 'Untitled'}`);
                 return;
             }
@@ -648,101 +799,113 @@
         btn.disabled = true;
         document.getElementById('submitText').innerText = "Processing...";
         document.getElementById('submitLoader').classList.remove('hidden');
-
+        
         try {
             // 1. Upload Art Cover
-            console.log('Uploading art cover...');
+            debugLog('Step 1: Uploading art cover...');
             const artData = await uploadArtCover(artworkFile);
             
             // 2. Create Release Record
-            console.log('Creating release record...');
+            debugLog('Step 2: Creating release record...');
+            
+            const releaseData = {
+                user_id: currentUser.id,
+                type: releaseType,
+                status: 'pending',
+                title: document.getElementById('releaseTitle').value.trim(),
+                primary_artist: document.getElementById('primaryArtist').value.trim(),
+                additional_artists: document.getElementById('additionalArtists').value 
+                    ? document.getElementById('additionalArtists').value.split(',').map(a => a.trim()).filter(a => a)
+                    : [],
+                release_date: document.getElementById('releaseDate').value,
+                genre: document.getElementById('genre').value,
+                sub_genre: null,
+                is_explicit: document.getElementById('isExplicit').checked,
+                global_content_id_enabled: document.getElementById('globalContentId').checked,
+                
+                // Art Cover
+                art_cover_url: artData.url,
+                art_cover_storage_path: artData.path,
+                art_cover_width: artData.width,
+                art_cover_height: artData.height,
+                art_cover_verified: artData.verified,
+                
+                // Audio info
+                audio_storage_path: null,
+                audio_file_name: null,
+                audio_original_name: null,
+                audio_file_size: null,
+                audio_duration: null,
+                audio_secured: false
+            };
+            
+            debugLog('Release data to insert:', releaseData);
+            
             const { data: release, error: releaseError } = await supabase
                 .from('releases')
-                .insert({
-                    user_id: currentUser.id,
-                    type: releaseType,
-                    status: 'pending',
-                    title: document.getElementById('releaseTitle').value.trim(),
-                    primary_artist: document.getElementById('primaryArtist').value.trim(),
-                    additional_artists: document.getElementById('additionalArtists').value 
-                        ? document.getElementById('additionalArtists').value.split(',').map(a => a.trim()).filter(a => a)
-                        : [],
-                    release_date: document.getElementById('releaseDate').value,
-                    genre: document.getElementById('genre').value,
-                    sub_genre: null,
-                    is_explicit: document.getElementById('isExplicit').checked,
-                    global_content_id_enabled: document.getElementById('globalContentId').checked,
-                    
-                    // Art Cover
-                    art_cover_url: artData.url,
-                    art_cover_storage_path: artData.path,
-                    art_cover_width: artData.width,
-                    art_cover_height: artData.height,
-                    art_cover_verified: artData.verified,
-                    
-                    // Audio info (for singles only)
-                    audio_storage_path: null,
-                    audio_file_name: null,
-                    audio_original_name: null,
-                    audio_file_size: null,
-                    audio_duration: null,
-                    audio_secured: false
-                })
+                .insert(releaseData)
                 .select()
                 .single();
             
             if (releaseError) {
-                console.error('Release creation error:', releaseError);
+                debugLog('ERROR: Release creation failed', releaseError);
                 throw releaseError;
             }
             
-            console.log('Release created:', release.id);
+            debugLog('✅ Release created:', release.id);
             
             // 3. Process Tracks
+            debugLog(`Step 3: Processing ${trackItems.length} track(s)...`);
+            
             let trackNumber = 1;
             for (const item of trackItems) {
                 const audioFile = item.querySelector('.track-audio-file').files[0];
-                console.log(`Uploading track ${trackNumber} audio...`);
+                debugLog(`Uploading audio for track ${trackNumber}...`);
+                
                 const audioData = await uploadAudioFile(audioFile, release.id, trackNumber);
                 
                 // Create Track Record
-                console.log(`Creating track ${trackNumber} record...`);
+                const trackData = {
+                    release_id: release.id,
+                    track_number: trackNumber,
+                    title: item.querySelector('.track-title').value.trim(),
+                    duration: parseInt(item.querySelector('.track-duration').value) || audioData.duration,
+                    featured_artists: item.querySelector('.track-featured')?.value 
+                        ? item.querySelector('.track-featured').value.split(',').map(a => a.trim()).filter(a => a)
+                        : [],
+                    is_explicit: item.querySelector('.track-explicit').value === 'true',
+                    genre: item.querySelector('.track-genre')?.value || document.getElementById('genre').value,
+                    
+                    // Audio File
+                    audio_storage_path: audioData.path,
+                    audio_file_name: audioData.fileName,
+                    audio_original_name: audioData.originalName,
+                    audio_file_size: audioData.fileSize,
+                    audio_duration_seconds: audioData.duration,
+                    audio_secured: false,
+                    
+                    // Ordering
+                    display_order: trackNumber
+                };
+                
+                debugLog(`Track ${trackNumber} data:`, trackData);
+                
                 const { error: trackError } = await supabase
                     .from('tracks')
-                    .insert({
-                        release_id: release.id,
-                        track_number: trackNumber,
-                        title: item.querySelector('.track-title').value.trim(),
-                        duration: parseInt(item.querySelector('.track-duration').value) || audioData.duration,
-                        featured_artists: item.querySelector('.track-featured').value 
-                            ? item.querySelector('.track-featured').value.split(',').map(a => a.trim()).filter(a => a)
-                            : [],
-                        is_explicit: item.querySelector('.track-explicit').value === 'true',
-                        genre: item.querySelector('.track-genre').value || document.getElementById('genre').value,
-                        
-                        // Audio File
-                        audio_storage_path: audioData.path,
-                        audio_file_name: audioData.fileName,
-                        audio_original_name: audioData.originalName,
-                        audio_file_size: audioData.fileSize,
-                        audio_duration_seconds: audioData.duration,
-                        audio_secured: false,
-                        
-                        // Ordering
-                        display_order: trackNumber
-                    });
+                    .insert(trackData);
                 
                 if (trackError) {
-                    console.error('Track creation error:', trackError);
+                    debugLog(`ERROR: Track ${trackNumber} creation failed`, trackError);
                     throw trackError;
                 }
                 
-                console.log(`Track ${trackNumber} created successfully`);
+                debugLog(`✅ Track ${trackNumber} created successfully`);
                 trackNumber++;
             }
             
             // 4. If single, update release with first track's audio info
             if (releaseType === 'single' && trackItems.length > 0) {
+                debugLog('Updating single release with audio info...');
                 const firstTrack = trackItems[0];
                 const audioFile = firstTrack.querySelector('.track-audio-file').files[0];
                 const audioData = await getAudioDuration(audioFile);
@@ -757,21 +920,29 @@
                         audio_duration: audioData
                     })
                     .eq('id', release.id);
+                
+                debugLog('✅ Single release updated with audio info');
             }
             
             // Success!
-            console.log('Release submission complete!');
+            debugLog('========== RELEASE SUBMISSION COMPLETE ==========');
             alert('✅ Release submitted successfully! It will be reviewed within 24-48 hours.');
             window.location.href = 'dashboard.html';
             
         } catch (error) {
-            console.error('Submission error:', error);
+            debugLog('========== SUBMISSION FAILED ==========', error);
             
             let errorMessage = 'Error submitting release. ';
             if (error.message.includes('permission denied')) {
-                errorMessage += 'Permission denied. Please check RLS policies.';
+                errorMessage += 'Permission denied. Check RLS policies.';
+                debugLog('RLS POLICY ISSUE - Run this SQL in Supabase:');
+                debugLog('ALTER TABLE releases DISABLE ROW LEVEL SECURITY;');
+                debugLog('ALTER TABLE tracks DISABLE ROW LEVEL SECURITY;');
+                debugLog('ALTER TABLE users DISABLE ROW LEVEL SECURITY;');
             } else if (error.message.includes('network')) {
-                errorMessage += 'Network error. Please check connection.';
+                errorMessage += 'Network error. Check connection.';
+            } else if (error.code) {
+                errorMessage += `Error code: ${error.code}. Message: ${error.message}`;
             } else {
                 errorMessage += error.message;
             }
@@ -784,12 +955,43 @@
             document.getElementById('submitLoader').classList.add('hidden');
         }
     }
-
+    
     function logout() {
+        debugLog('Logging out...');
         supabase.auth.signOut();
         window.location.href = 'index.html';
     }
-
+    
+    // ==================== QUICK FIX BUTTON ====================
+    // Add this button for testing
+    document.addEventListener('DOMContentLoaded', () => {
+        const quickFixBtn = document.createElement('button');
+        quickFixBtn.textContent = '🛠️ Quick Fix';
+        quickFixBtn.className = 'fixed bottom-20 right-5 bg-red-500 text-white p-2 rounded text-xs z-50';
+        quickFixBtn.onclick = async () => {
+            debugLog('Running quick fix...');
+            
+            // Test database connection
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    debugLog('Database test failed:', error);
+                    alert('Database error: ' + error.message);
+                } else {
+                    debugLog('Database test passed');
+                    alert('Database connection OK!');
+                }
+            } catch (err) {
+                debugLog('Quick fix test failed:', err);
+            }
+        };
+        document.body.appendChild(quickFixBtn);
+    });
+    
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 's') {
@@ -798,6 +1000,10 @@
         }
         if (e.key === 'Escape') {
             window.location.href = 'dashboard.html';
+        }
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            toggleDebug();
         }
     });
 </script>
